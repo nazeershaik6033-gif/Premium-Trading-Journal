@@ -429,7 +429,6 @@ function App(){
   const [tab,setTab]=useState('summary');
   const [sidebar,setSidebar]=useState(false);
   const [notif,setNotif]=useState(null);
-  const [sheet,setSheet]=useState(null);// {type, data}
   const [lightbox,setLightbox]=useState(null);
   const [mktStatus,setMktStatus]=useState(getMarketStatus());
   const priceTimerRef=useRef(null);
@@ -533,15 +532,15 @@ function App(){
     t(MarketBanner,{status:mktStatus}),
     t('div',{className:'nav-tabs'},TABS.map(tb=>t('div',{key:tb.id,className:'nav-tab'+(tab===tb.id?' active':''),onClick:()=>setTab(tb.id)},tb.label))),
     t('div',{className:'tab-content'},
-      tab==='summary'&&t(SummaryTab,{state,upd,stats,livePrices:state.livePrices,onSheet:setSheet,showNotif}),
-      tab==='entry'&&t(EntryTab,{state,upd,showNotif,onSheet:setSheet}),
-      tab==='live'&&t(LiveTab,{state,upd,stats,livePrices:state.livePrices,onLightbox:setLightbox,showNotif,onSheet:setSheet}),
-      tab==='closed'&&t(ClosedTab,{state,upd,livePrices:state.livePrices,onLightbox:setLightbox,showNotif,onSheet:setSheet}),
-      tab==='priority'&&t(PriorityTab,{state,upd,livePrices:state.livePrices,showNotif,onSheet:setSheet}),
-      tab==='watchlist'&&t(WatchlistTab,{state,upd,livePrices:state.livePrices,showNotif,onSheet:setSheet}),
+      tab==='summary'&&t(SummaryTab,{state,upd,stats,livePrices:state.livePrices,showNotif}),
+      tab==='entry'&&t(EntryTab,{state,upd,showNotif}),
+      tab==='live'&&t(LiveTab,{state,upd,stats,livePrices:state.livePrices,onLightbox:setLightbox,showNotif}),
+      tab==='closed'&&t(ClosedTab,{state,upd,livePrices:state.livePrices,onLightbox:setLightbox,showNotif}),
+      tab==='priority'&&t(PriorityTab,{state,upd,livePrices:state.livePrices,showNotif}),
+      tab==='watchlist'&&t(WatchlistTab,{state,upd,livePrices:state.livePrices,showNotif}),
       tab==='calendar'&&t(CalendarTab,{state,livePrices:state.livePrices}),
       tab==='strategy'&&t(StrategyTab,{state,upd,showNotif}),
-      tab==='settings'&&t(SettingsTab,{state,upd,showNotif,onSheet:setSheet})
+      tab==='settings'&&t(SettingsTab,{state,upd,showNotif})
     ),
     t(Sidebar,{show:sidebar,onClose:()=>setSidebar(false),state,upd,showNotif,stats})
   );
@@ -617,7 +616,8 @@ function Sidebar({show,onClose,state,upd,showNotif,stats}){
 }
 
 // SUMMARY TAB
-function SummaryTab({state,upd,stats,livePrices,onSheet,showNotif}){
+function SummaryTab({state,upd,stats,livePrices,showNotif}){
+  const [showCapSheet,setShowCapSheet]=useState(false);
   const allLive=[...state.trades.live.stocks,...state.trades.live.futures,...state.trades.live.options];
   const allClosed=[...state.trades.closed.stocks,...state.trades.closed.futures,...state.trades.closed.options];
   // Monthly P&L for chart
@@ -636,7 +636,7 @@ function SummaryTab({state,upd,stats,livePrices,onSheet,showNotif}){
     t('div',{className:'card'},
       t('div',{className:'sec-hdr'},
         t('div',{className:'sec-title'},'Portfolio'),
-        t('button',{className:'btn btn-xs btn-sf',onClick:()=>onSheet({type:'capital'})},`Edit Capital`)
+        t('button',{className:'btn btn-xs btn-sf',onClick:()=>setShowCapSheet(true)},`Edit Capital`)
       ),
       t('div',{className:'stats-grid'},
         t('div',{className:'stat-card'},t('div',{className:'stat-label'},'Capital'),t('div',{className:'stat-value',style:{color:'var(--ac)'}},fmtCur(stats.capital))),
@@ -686,15 +686,12 @@ function SummaryTab({state,upd,stats,livePrices,onSheet,showNotif}){
     ),
 
     // Capital sheet
-    sheet&&t(CapitalSheet,{show:onSheet.type==='capital',state,upd,onClose:()=>onSheet(null),showNotif})
+    t(CapitalSheet,{show:showCapSheet,state,upd,onClose:()=>setShowCapSheet(false),showNotif})
   );
 }
 
-// We handle the sheet differently - pass onSheet as a function to open/close
-// Let me refactor to use a separate sheet state in each tab
-
 // ENTRY TAB
-function EntryTab({state,upd,showNotif,onSheet}){
+function EntryTab({state,upd,showNotif}){
   const [form,setForm]=useState({
     date:today(),symbol:'',exchange:'NSE',type:'stocks',side:'buy',
     avgPrice:'',qty:'',lots:'1',lotSize:'',stoploss:'',target:'',
@@ -828,7 +825,7 @@ function EntryTab({state,upd,showNotif,onSheet}){
 }
 
 // LIVE TAB
-function LiveTab({state,upd,stats,livePrices,onLightbox,showNotif,onSheet}){
+function LiveTab({state,upd,stats,livePrices,onLightbox,showNotif}){
   const [seg,setSeg]=useState('stocks');
   const [closingId,setClosingId]=useState(null);
   const [closeForm,setCloseForm]=useState({exitPrice:'',exitDate:today(),notes:''});
@@ -923,7 +920,7 @@ function LiveTab({state,upd,stats,livePrices,onLightbox,showNotif,onSheet}){
 }
 
 // CLOSED TAB
-function ClosedTab({state,upd,livePrices,onLightbox,showNotif,onSheet}){
+function ClosedTab({state,upd,livePrices,onLightbox,showNotif}){
   const [seg,setSeg]=useState('stocks');
   const [search,setSearch]=useState('');
   const trades=(state.trades.closed[seg]||[]).filter(t=>!search||t.symbol.toLowerCase().includes(search.toLowerCase()));
@@ -978,7 +975,7 @@ function ClosedTab({state,upd,livePrices,onLightbox,showNotif,onSheet}){
 }
 
 // PRIORITY TAB
-function PriorityTab({state,upd,livePrices,showNotif,onSheet}){
+function PriorityTab({state,upd,livePrices,showNotif}){
   const [showAdd,setShowAdd]=useState(false);
   const [form,setForm]=useState({symbol:'',exchange:'NSE',notes:'',priority:'medium',gttSL:'',gttTarget:''});
   const ff=k=>e=>setForm(f=>({...f,[k]:e.target.value}));
@@ -1049,7 +1046,7 @@ function PriorityTab({state,upd,livePrices,showNotif,onSheet}){
 }
 
 // WATCHLIST TAB
-function WatchlistTab({state,upd,livePrices,showNotif,onSheet}){
+function WatchlistTab({state,upd,livePrices,showNotif}){
   const [showAddWL,setShowAddWL]=useState(false);
   const [wlName,setWlName]=useState('');
   const [showAddItem,setShowAddItem]=useState(false);
@@ -1260,7 +1257,7 @@ function StrategyTab({state,upd,showNotif}){
 }
 
 // SETTINGS TAB
-function SettingsTab({state,upd,showNotif,onSheet}){
+function SettingsTab({state,upd,showNotif}){
   const [accountForm,setAccountForm]=useState({name:'',broker:'',type:'trading'});
   const [showAddAcct,setShowAddAcct]=useState(false);
 
