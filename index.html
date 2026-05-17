@@ -220,7 +220,7 @@ body.light{
 'use strict';
 const {useState,useEffect,useRef,useCallback,useMemo}=React;
 const ce=React.createElement;
-const t=(type,props,key)=>{if(!props)return ce(type);const{children,...rest}=props;const p=key!==undefined?{...rest,key}:rest;if(children===undefined||children===null||children===false)return ce(type,p);if(Array.isArray(children))return ce(type,p,...children);return ce(type,p,children)};
+const t=(type,props,...args)=>{if(!props)return args.length?ce(type,null,...args):ce(type);const{children,...rest}=props;if(children!==undefined&&children!==null&&children!==false){return Array.isArray(children)?ce(type,rest,...children):ce(type,rest,children);}if(!args.length)return ce(type,rest);return ce(type,rest,...args);};
 const o=t;
 
 // Design tokens
@@ -347,7 +347,7 @@ const Ic={
 
 // Notification component
 function Notif({msg,onDone}){
-  useEffect(()=>{const t=setTimeout(onDone,3000);return()=>clearTimeout(t);},[]);
+  useEffect(()=>{const tid=setTimeout(onDone,3000);return()=>clearTimeout(tid);},[]);
   return t('div',{className:'notif'},msg);
 }
 
